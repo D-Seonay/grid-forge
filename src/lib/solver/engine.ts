@@ -202,6 +202,8 @@ export class GridSolver {
 
   private generateBlackSquares() {
     const ratio = this.options.maxBlackSquaresRatio ?? 0.2;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
     if (ratio > 0) {
       for (let y = 0; y < Math.ceil(this.height / 2); y++) {
         const isMiddleRow = y === this.height - 1 - y;
@@ -215,8 +217,11 @@ export class GridSolver {
             const oppX = this.width - 1 - x;
             
             if (!this.isLetter(this.grid[oppY][oppX])) {
-              this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
-              this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+              const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
+              // On utilise le type 'BLACK' pour la logique interne du solver, 
+              // mais on lui donne une lettre au lieu de '#'
+              this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false };
+              this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false };
             }
           }
         }
@@ -237,12 +242,11 @@ export class GridSolver {
                 const oppY = this.height - 1 - y;
                 const oppX = this.width - 1 - x;
                 
-                // Only convert if it's not a priority word cell
                 if (!this.grid[y][x].isPriority && !this.grid[oppY][oppX].isPriority) {
-                  this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
-                  this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+                  const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
+                  this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false };
+                  this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false };
                   changed = true;
-                  // Re-find slots because structure changed
                   break; 
                 }
               }
@@ -253,16 +257,20 @@ export class GridSolver {
       }
     }
 
+    // Phase finale : on s'assure que TOUT est visuellement une lettre
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        if (this.grid[y][x].type === 'EMPTY') {
-          this.grid[y][x].type = 'LETTER';
+        const cell = this.grid[y][x];
+        
+        // On convertit le type technique 'BLACK' en 'LETTER' pour l'affichage
+        if (cell.type === 'BLACK') {
+          cell.type = 'LETTER';
         }
-        // Si le ratio est 0 et que la case est encore vide après le solver, 
-        // on met une lettre au hasard pour boucher les trous sans faire de mots
-        if (this.options.maxBlackSquaresRatio === 0 && this.grid[y][x].char === '') {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-          this.grid[y][x].char = chars.charAt(Math.floor(Math.random() * chars.length));
+        
+        // Remplissage des cases vides restantes (pour ratio 0 ou zones inaccessibles)
+        if (cell.char === '' || cell.type === 'EMPTY') {
+          cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
+          cell.type = 'LETTER';
         }
       }
     }
