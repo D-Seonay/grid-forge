@@ -96,8 +96,29 @@ export class GridSolver {
   private placePriorityWords() {
     const words = [...this.options.priorityWords].map(w => w.toUpperCase()).sort((a, b) => b.length - a.length);
     if (words.length === 0) return;
-    this.placeWord(words[0], Math.floor(this.height / 2), Math.max(0, Math.floor((this.width - words[0].length) / 2)), 'H');
-    for (let i = 1; i < words.length; i++) this.tryPlaceWithIntersection(words[i]);
+
+    // Place the first word randomly instead of always center
+    let placed = false;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const dir: 'H' | 'V' = Math.random() > 0.5 ? 'H' : 'V';
+      const y = Math.floor(Math.random() * this.height);
+      const x = Math.floor(Math.random() * this.width);
+      
+      if (this.canPlaceWord(words[0], y, x, dir)) {
+        this.placeWord(words[0], y, x, dir);
+        placed = true;
+        break;
+      }
+    }
+
+    // Fallback if random fails
+    if (!placed) {
+      this.placeWord(words[0], Math.floor(this.height / 2), Math.max(0, Math.floor((this.width - words[0].length) / 2)), 'H');
+    }
+
+    for (let i = 1; i < words.length; i++) {
+      this.tryPlaceWithIntersection(words[i]);
+    }
   }
 
   private tryPlaceWithIntersection(word: string): boolean {
