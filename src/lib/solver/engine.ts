@@ -69,6 +69,33 @@ export class GridSolver {
       // On lance le backtracking sur un ensemble de slots non-remplis
       const success = await this.solveRecursive();
 
+      // --- PHASE FINALE : Conversion visuelle ---
+      // On ne le fait qu'ici pour ne pas perturber le solver
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          const cell = this.grid[y][x];
+          
+          // Les cases noires deviennent des lettres de remplissage
+          if (cell.type === 'BLACK') {
+            cell.type = 'LETTER';
+            cell.isFiller = true;
+          }
+          
+          // Les cases restées vides (inaccessibles) deviennent aussi du remplissage
+          if (cell.char === '' || cell.type === 'EMPTY') {
+            cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
+            cell.type = 'LETTER';
+            cell.isFiller = true;
+          }
+
+          // Par sécurité, si c'est un mot prioritaire, ce n'est PAS un filler
+          if (cell.isPriority) {
+            cell.isFiller = false;
+          }
+        }
+      }
+
       return {
         success,
         grid: this.grid,
@@ -183,7 +210,7 @@ export class GridSolver {
   private placeWord(word: string, startY: number, startX: number, dir: 'H' | 'V') {
     for (let i = 0; i < word.length; i++) {
       const y = dir === 'V' ? startY + i : startY, x = dir === 'H' ? startX + i : startX;
-      this.grid[y][x] = { char: word[i], type: 'LETTER', isPriority: true };
+      this.grid[y][x] = { char: word[i], type: 'LETTER', isPriority: true, isFiller: false };
     }
     return true;
   }
@@ -252,25 +279,6 @@ export class GridSolver {
             }
           }
           if (changed) break;
-        }
-      }
-    }
-
-    // Phase finale : on s'assure que TOUT est visuellement une lettre
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const cell = this.grid[y][x];
-        
-        // On convertit le type technique 'BLACK' en 'LETTER' pour l'affichage
-        if (cell.type === 'BLACK') {
-          cell.type = 'LETTER';
-        }
-        
-        // Remplissage des cases vides restantes (pour ratio 0 ou zones inaccessibles)
-        if (cell.char === '' || cell.type === 'EMPTY') {
-          cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
-          cell.type = 'LETTER';
-          cell.isFiller = true;
         }
       }
     }
@@ -432,6 +440,7 @@ export class GridSolver {
     slot.cells.forEach((c, i) => {
       this.grid[c.y][c.x].char = word[i];
       this.grid[c.y][c.x].type = 'LETTER';
+      this.grid[c.y][c.x].isFiller = false;
     });
     return backup;
   }
