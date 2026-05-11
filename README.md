@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GridForge
 
-## Getting Started
+GridForge est un générateur intelligent de structures pour mots croisés et mots fléchés, conçu pour être performant, moderne et facilement déployable.
 
-First, run the development server:
+## 🚀 Vision du Projet
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+L'objectif de GridForge est de simplifier la création de grilles de jeux de lettres en automatisant le placement des mots et des cases noires tout en respectant les contraintes linguistiques et structurelles.
+
+### Périmètre V1
+- Génération de la structure (squelette).
+- Remplissage automatique des lettres (Solution).
+- Support de mots prioritaires définis par l'utilisateur.
+- Interface moderne et responsive.
+
+## 🛠 Stack Technique
+
+- **Framework** : [Next.js 14+ (App Router)](https://nextjs.org/)
+- **Langage** : [TypeScript](https://www.typescriptlang.org/)
+- **Styling** : [Tailwind CSS](https://tailwindcss.com/)
+- **Validation** : [Zod](https://zod.dev/)
+- **Formulaires** : [React Hook Form](https://react-hook-form.com/)
+- **Algorithmes** : CSP (Constraint Satisfaction Problem) avec Backtracking et heuristique MRV.
+
+## 📂 Architecture du Projet
+
+```text
+src/
+├── app/              # Routes et API handlers
+├── components/       # Composants React (Grid, UI, WordList)
+├── data/             # Dictionnaires et ressources statiques
+├── lib/
+│   ├── solver/       # Moteur de résolution algorithmique
+│   ├── dictionary/   # Gestion et filtrage du lexique
+│   └── types.ts      # Définitions TypeScript globales
+└── utils/            # Utilitaires helpers
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ⚙️ Installation et Développement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Pré-requis
+- Node.js 18+
+- pnpm (recommandé) ou npm/yarn
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Installation
+```bash
+# Installation des dépendances
+pnpm install
+```
 
-## Learn More
+### Lancement en local
+```bash
+pnpm dev
+```
+L'application sera accessible sur `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+### Build pour la production
+```bash
+pnpm build
+pnpm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧠 Algorithme de Génération
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Le solver fonctionne en trois phases distinctes :
+1. **Placement Squelette** : Disposition des mots prioritaires de l'utilisateur.
+2. **Génération du Motif** : Placement stratégique des cases noires (symétrie, connectivité).
+3. **Remplissage CSP** : Utilisation d'un algorithme de backtracking optimisé pour remplir les cases vides restantes avec des mots du dictionnaire.
 
-## Deploy on Vercel
+## 📝 Licence
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ce projet est sous licence MIT.
