@@ -46,6 +46,14 @@ export class GridSolver {
     );
   }
 
+  private isValidCoord(y: number, x: number): boolean {
+    return y >= 0 && y < this.height && x >= 0 && x < this.width;
+  }
+
+  private isLetter(cell: Cell): boolean {
+    return cell.type === 'LETTER' && cell.char !== '' && cell.char !== '#';
+  }
+
   public async solve(): Promise<GenerateResponse> {
     this.startTime = Date.now();
     this.backtracks = 0;
