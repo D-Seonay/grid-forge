@@ -302,6 +302,7 @@ export class GridSolver {
         if (this.grid[c.y][c.x].char === '') {
             savedChars.push({ x: c.x, y: c.y, char: '' });
             this.grid[c.y][c.x].char = candidate[i];
+            this.grid[c.y][c.x].type = 'LETTER';
         } else if (this.grid[c.y][c.x].char !== candidate[i]) {
             // Conflit imprévu
             possible = false;
@@ -316,6 +317,7 @@ export class GridSolver {
       // Rollback
       for (const saved of savedChars) {
         this.grid[saved.y][saved.x].char = '';
+        this.grid[saved.y][saved.x].type = 'EMPTY';
       }
     }
 

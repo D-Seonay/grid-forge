@@ -27,7 +27,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ grid, width, height }) => {
               cell.isPriority && "text-indigo-600 bg-indigo-50/30"
             )}
           >
-            {cell.type === 'LETTER' ? (
+            {cell.char && cell.type !== 'BLACK' ? (
               <span className="animate-in fade-in zoom-in duration-500">{cell.char}</span>
             ) : null}
             
