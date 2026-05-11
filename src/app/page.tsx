@@ -5,15 +5,17 @@ import GridCanvas from '@/components/grid/GridCanvas';
 import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
 import { Grid, GenerateResponse } from '@/lib/types';
-import { Copy, Download, FileText } from 'lucide-react';
+import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [grid, setGrid] = useState<Grid | null>(null);
   const [dimensions, setDimensions] = useState({ width: 10, height: 10 });
   const [priorityWords, setPriorityWords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -23,7 +25,7 @@ export default function Home() {
     setDimensions(data);
 
     try {
-      const response = await fetch('/api/generate', {
+      const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -32,30 +34,18 @@ export default function Home() {
         }),
       });
 
-      const result: GenerateResponse = await response.json();
-
-      setGrid(result.grid); // On affiche la grille quoi qu'il arrive si elle est présente
+      const result: GenerateResponse = await res.json();
+      setResponse(result);
+      setGrid(result.grid);
       
       if (!result.success) {
-        setError(result.errors?.[0] || 'La génération a échoué ou a été interrompue (timeout).');
-      } else {
-        setError(null);
+        setError(result.errors?.[0] || 'Génération incomplète (Timeout)');
       }
     } catch (err) {
-      setError('Impossible de contacter le serveur.');
+      setError('Erreur de connexion au serveur.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const addPriorityWord = (word: string) => {
-    if (!priorityWords.includes(word)) {
-      setPriorityWords([...priorityWords, word]);
-    }
-  };
-
-  const removePriorityWord = (index: number) => {
-    setPriorityWords(priorityWords.filter((_, i) => i !== index));
   };
 
   const copyToClipboard = () => {
@@ -63,132 +53,130 @@ export default function Home() {
     const text = grid.map(row => 
       row.map(cell => cell.type === 'BLACK' ? '#' : (cell.char || '.')).join(' ')
     ).join('\n');
-    
     navigator.clipboard.writeText(text);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  const downloadJson = () => {
-    if (!grid) return;
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-      dimensions,
-      priorityWords,
-      grid
-    }, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "grid-forge-export.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-
   const downloadPdf = () => {
     if (!grid) return;
     const doc = new jsPDF();
-    doc.text(`GridForge - Grille ${dimensions.width}x${dimensions.height}`, 14, 15);
+    doc.setFontSize(20);
+    doc.text("GridForge Export", 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Dimensions: ${dimensions.width}x${dimensions.height} | Mots: ${priorityWords.length}`, 14, 28);
     
-    const tableData = grid.map(row => 
-      row.map(cell => cell.type === 'BLACK' ? '' : (cell.char || ''))
-    );
-
+    const tableData = grid.map(row => row.map(cell => cell.type === 'BLACK' ? '' : (cell.char || '')));
     autoTable(doc, {
-      startY: 25,
+      startY: 35,
       body: tableData,
       theme: 'grid',
-      styles: {
-        cellPadding: 2,
-        fontSize: 12,
-        halign: 'center',
-        valign: 'middle',
-        lineWidth: 0.5,
-        lineColor: [0, 0, 0],
-        textColor: [0, 0, 0],
-        minCellHeight: 10,
-      },
+      styles: { cellPadding: 2, fontSize: 12, halign: 'center', valign: 'middle', lineWidth: 0.5, lineColor: [0, 0, 0] },
       didParseCell: (data) => {
-        const rowIndex = data.row.index;
-        const colIndex = data.column.index;
-        if (grid[rowIndex][colIndex].type === 'BLACK') {
-          data.cell.styles.fillColor = [0, 0, 0];
-        }
+        if (grid[data.row.index][data.column.index].type === 'BLACK') data.cell.styles.fillColor = [0, 0, 0];
       }
     });
-
-    doc.save("grid-forge.pdf");
+    doc.save(`gridforge-${dimensions.width}x${dimensions.height}.pdf`);
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            GridForge
-          </h1>
-          <p className="text-lg text-gray-600">
-            Générateur de structures de mots fléchés & croisés
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <GridControls onGenerate={handleGenerate} isLoading={isLoading} />
-            <PriorityPanel 
-              words={priorityWords} 
-              onAddWord={addPriorityWord} 
-              onRemoveWord={removePriorityWord} 
-            />
-            
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
+      {/* Header */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
+        <div className="max-w-[1600px] mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <Sparkles className="text-white" size={20} />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">GridForge <span className="text-slate-400 font-medium text-sm ml-1">v1.0</span></h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {grid && (
+              <>
+                <button onClick={copyToClipboard} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2">
+                  <Copy size={16} /> {copySuccess ? 'Copié' : 'Copier'}
+                </button>
+                <button onClick={downloadPdf} className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all flex items-center gap-2">
+                  <FileText size={16} /> PDF
+                </button>
+              </>
             )}
           </div>
+        </div>
+      </nav>
 
-          <div className="lg:col-span-2 flex flex-col items-center justify-start bg-white p-8 rounded-lg shadow-inner border border-gray-200 min-h-[500px]">
-            {grid ? (
-              <div className="w-full flex flex-col items-center">
-                <div className="w-full flex justify-end gap-2 mb-4">
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    <Copy size={16} />
-                    {copySuccess ? 'Copié !' : 'Copier texte'}
-                  </button>
-                  <button
-                    onClick={downloadPdf}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    <FileText size={16} />
-                    PDF
-                  </button>
-                  <button
-                    onClick={downloadJson}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
-                  >
-                    <Download size={16} />
-                    JSON
-                  </button>
-                </div>
-                
-                <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} />
-                
-                <div className="mt-8 text-sm text-gray-500 italic">
-                  Grille générée avec succès. {dimensions.width}x{dimensions.height}
+      <main className="max-w-[1600px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Sidebar */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <GridControls onGenerate={handleGenerate} isLoading={isLoading} />
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <PriorityPanel 
+              words={priorityWords} 
+              onAddWord={(w) => setPriorityWords([...priorityWords, w])} 
+              onRemoveWord={(i) => setPriorityWords(priorityWords.filter((_, idx) => idx !== i))} 
+            />
+          </div>
+        </div>
+
+        {/* Main Canvas */}
+        <div className="lg:col-span-9 space-y-6">
+          {/* Status Bar */}
+          {response && (
+            <div className="flex flex-wrap gap-4">
+              <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                <Clock className="text-slate-400" size={18} />
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Temps</p>
+                  <p className="text-sm font-semibold">{(response.stats.executionTime / 1000).toFixed(2)}s</p>
                 </div>
               </div>
+              <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                <BarChart3 className="text-slate-400" size={18} />
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Remplissage</p>
+                  <p className="text-sm font-semibold">{(response.stats.fillRate * 100).toFixed(1)}%</p>
+                </div>
+              </div>
+              {error && (
+                <div className="bg-amber-50 px-4 py-3 rounded-xl border border-amber-200 flex items-center gap-3 text-amber-700">
+                  <AlertCircle size={18} />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+              {response.success && (
+                <div className="bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-200 flex items-center gap-3 text-emerald-700">
+                  <CheckCircle2 size={18} />
+                  <p className="text-sm font-medium">Grille complète</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="bg-white rounded-3xl p-12 shadow-sm border border-slate-200 min-h-[600px] flex items-center justify-center relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4F46E5 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+            
+            {grid ? (
+              <div className="relative z-10 transition-all duration-500 ease-out transform scale-100">
+                <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} />
+              </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <p className="text-xl mb-2">Aucune grille générée</p>
-                <p>Configurez vos paramètres et cliquez sur "Générer"</p>
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                  <Sparkles size={32} />
+                </div>
+                <div className="max-w-xs mx-auto">
+                  <h3 className="text-lg font-bold text-slate-800">Prêt à forger ?</h3>
+                  <p className="text-slate-500 text-sm">Configurez vos paramètres à gauche pour générer votre première grille.</p>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
