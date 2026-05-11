@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import GridCanvas from '@/components/grid/GridCanvas';
 import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
@@ -8,8 +8,6 @@ import { Grid, GenerateResponse } from '@/lib/types';
 import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { GridSolver } from '@/lib/solver/engine';
-import { dictionaryLoader } from '@/lib/dictionary/loader';
 
 export default function Home() {
   const [grid, setGrid] = useState<Grid | null>(null);
@@ -21,40 +19,58 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Charger le dictionnaire au montage du composant
+  // Utilisation d'une Ref pour garder une instance unique du Worker
+  const workerRef = useRef<Worker | null>(null);
+
   useEffect(() => {
-    dictionaryLoader.load().then(() => setIsDictLoading(false));
+    // Initialisation du worker
+    const worker = new Worker(new URL('../lib/solver/solver.worker.ts', import.meta.url));
+    workerRef.current = worker;
+
+    // Gestionnaire de messages entrant
+    worker.onmessage = (e: MessageEvent) => {
+      const { type, payload, error } = e.data;
+
+      if (type === 'DICT_READY') {
+        setIsDictLoading(false);
+      } else if (type === 'RESULT') {
+        setResponse(payload);
+        setGrid(payload.grid);
+        setIsLoading(false);
+        if (!payload.success) {
+          setError(payload.errors?.[0] || 'Génération incomplète');
+        }
+      } else if (type === 'ERROR') {
+        setError(error);
+        setIsLoading(false);
+      }
+    };
+
+    // Charger le dictionnaire dans le worker
+    worker.postMessage({ type: 'LOAD_DICT' });
+
+    return () => {
+      worker.terminate();
+    };
   }, []);
 
-  const handleGenerate = async (data: { width: number; height: number; blackSquaresRatio: number }) => {
+  const handleGenerate = (data: { width: number; height: number; blackSquaresRatio: number }) => {
+    if (!workerRef.current) return;
+    
     setIsLoading(true);
     setError(null);
     setDimensions({ width: data.width, height: data.height });
 
-    // Petit délai pour laisser l'UI s'afficher avant de bloquer le thread principal (si l'algo est lourd)
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    try {
-      const solver = new GridSolver({
+    // Envoi de la commande au worker
+    workerRef.current.postMessage({
+      type: 'GENERATE',
+      payload: {
         width: data.width,
         height: data.height,
         priorityWords,
         maxBlackSquaresRatio: data.blackSquaresRatio
-      });
-
-      const result = await solver.solve();
-      
-      setResponse(result);
-      setGrid(result.grid);
-      
-      if (!result.success) {
-        setError(result.errors?.[0] || 'Génération incomplète');
       }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la génération.');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const copyToClipboard = () => {
@@ -92,8 +108,14 @@ export default function Home() {
   if (isDictLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="text-indigo-600 animate-spin" size={48} />
-        <p className="text-slate-600 font-medium animate-pulse">Initialisation du dictionnaire (300k mots)...</p>
+        <div className="relative">
+           <div className="absolute inset-0 bg-indigo-100 blur-2xl rounded-full opacity-50 animate-pulse"></div>
+           <Loader2 className="text-indigo-600 animate-spin relative z-10" size={56} />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-slate-800 font-bold text-lg">Initialisation de la Forge</p>
+          <p className="text-slate-400 text-sm">Chargement du dictionnaire linguistique...</p>
+        </div>
       </div>
     );
   }
@@ -103,7 +125,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 p-2 rounded-lg">
+            <div className="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-100">
               <Sparkles className="text-white" size={20} />
             </div>
             <h1 className="text-xl font-bold tracking-tight">GridForge <span className="text-slate-400 font-medium text-sm ml-1">v1.0</span></h1>
@@ -139,18 +161,22 @@ export default function Home() {
 
         <div className="lg:col-span-9 space-y-6">
           {response && (
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
               <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                <Clock className="text-slate-400" size={18} />
+                <div className="bg-slate-50 p-2 rounded-lg text-slate-400">
+                  <Clock size={18} />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Temps</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1 tracking-wider">Temps</p>
                   <p className="text-sm font-semibold">{(response.stats.executionTime / 1000).toFixed(2)}s</p>
                 </div>
               </div>
               <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                <BarChart3 className="text-slate-400" size={18} />
+                <div className="bg-slate-50 p-2 rounded-lg text-slate-400">
+                  <BarChart3 size={18} />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Remplissage</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1 tracking-wider">Remplissage</p>
                   <p className="text-sm font-semibold">{(response.stats.fillRate * 100).toFixed(1)}%</p>
                 </div>
               </div>
@@ -169,7 +195,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="bg-white rounded-3xl p-12 shadow-sm border border-slate-200 min-h-[600px] flex items-center justify-center relative overflow-hidden">
+          <div className="bg-white rounded-3xl p-12 shadow-sm border border-slate-200 min-h-[600px] flex items-center justify-center relative overflow-hidden transition-all">
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4F46E5 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
             {grid ? (
@@ -177,13 +203,22 @@ export default function Home() {
                 <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} />
               </div>
             ) : (
-              <div className="text-center space-y-4">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                  <Sparkles size={32} />
+              <div className="text-center space-y-6">
+                <div className="w-24 h-24 bg-indigo-50 text-indigo-200 rounded-full flex items-center justify-center mx-auto transition-transform hover:scale-110 duration-500">
+                  <Sparkles size={40} className="text-indigo-600/30" />
                 </div>
-                <div className="max-w-xs mx-auto">
-                  <h3 className="text-lg font-bold text-slate-800">Prêt à forger ?</h3>
-                  <p className="text-slate-500 text-sm">Configurez vos paramètres à gauche pour générer votre première grille.</p>
+                <div className="max-w-xs mx-auto space-y-2">
+                  <h3 className="text-xl font-bold text-slate-800">Forgez votre chef-d'œuvre</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">Le dictionnaire est chargé et l'algorithme est prêt. Configurez vos dimensions pour commencer.</p>
+                </div>
+              </div>
+            )}
+
+            {isLoading && (
+              <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] flex items-center justify-center transition-all animate-in fade-in duration-300">
+                <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center gap-4 scale-110">
+                  <Loader2 className="text-indigo-600 animate-spin" size={32} />
+                  <p className="text-slate-800 font-bold text-sm">Forgeage en cours...</p>
                 </div>
               </div>
             )}

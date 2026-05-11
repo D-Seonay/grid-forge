@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const validatedData = requestSchema.parse(body);
 
     // Ensure dictionary is loaded
-    await dictionaryLoader.getDictionary();
+    await dictionaryLoader.load();
 
     const solver = new GridSolver({
       width: validatedData.dimensions.width,

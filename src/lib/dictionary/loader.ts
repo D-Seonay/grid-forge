@@ -17,8 +17,21 @@ class DictionaryLoader {
     if (this.dictionary) return this.dictionary;
 
     try {
-      const response = await fetch('/dictionary.json');
-      this.dictionary = await response.json();
+      // Check if we are in Node.js environment
+      const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+      if (isNode) {
+        // Server side (Node.js)
+        const fs = await import('fs');
+        const path = await import('path');
+        const filePath = path.join(process.cwd(), 'public', 'dictionary.json');
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        this.dictionary = JSON.parse(fileContent);
+      } else {
+        // Client side or Web Worker
+        const response = await fetch('/dictionary.json');
+        this.dictionary = await response.json();
+      }
       return this.dictionary!;
     } catch (error) {
       console.error('Failed to load dictionary:', error);
