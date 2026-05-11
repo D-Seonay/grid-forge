@@ -51,6 +51,7 @@ export class GridSolver {
     try {
       this.placePriorityWords();
       this.generateBlackSquares();
+      if (!this.validateConnectivity()) throw new Error('INVALID_GRID_STRUCTURE');
       this.slots = this.findSlots();
       this.mapIntersections();
 
@@ -148,7 +149,10 @@ export class GridSolver {
     const ratio = this.options.maxBlackSquaresRatio ?? 0.2;
     if (ratio > 0) {
       for (let y = 0; y < Math.ceil(this.height / 2); y++) {
-        for (let x = 0; x < this.width; x++) {
+        const isMiddleRow = y === this.height - 1 - y;
+        const xLimit = isMiddleRow ? Math.ceil(this.width / 2) : this.width;
+        
+        for (let x = 0; x < xLimit; x++) {
           // Skip if already set (e.g. by priority words)
           if (this.grid[y][x].char !== '') continue;
           
@@ -170,6 +174,21 @@ export class GridSolver {
         if (this.grid[y][x].type === 'EMPTY') this.grid[y][x].type = 'LETTER';
       }
     }
+  }
+
+  private validateConnectivity(): boolean {
+    const slots = this.findSlots();
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (this.grid[y][x].type === 'BLACK') continue;
+        
+        const hasH = slots.some(s => s.direction === 'H' && s.cells.some(c => c.x === x && c.y === y));
+        const hasV = slots.some(s => s.direction === 'V' && s.cells.some(c => c.x === x && c.y === y));
+        
+        if (!hasH || !hasV) return false;
+      }
+    }
+    return true;
   }
 
   // --- STRUCTURE ANALYSIS ---
