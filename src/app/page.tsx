@@ -1,51 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GridCanvas from '@/components/grid/GridCanvas';
 import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
 import { Grid, GenerateResponse } from '@/lib/types';
-import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3 } from 'lucide-react';
+import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { cn } from '@/lib/utils';
+import { GridSolver } from '@/lib/solver/engine';
+import { dictionaryLoader } from '@/lib/dictionary/loader';
 
 export default function Home() {
   const [grid, setGrid] = useState<Grid | null>(null);
   const [dimensions, setDimensions] = useState({ width: 10, height: 10 });
   const [priorityWords, setPriorityWords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDictLoading, setIsDictLoading] = useState(true);
   const [response, setResponse] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+
+  // Charger le dictionnaire au montage du composant
+  useEffect(() => {
+    dictionaryLoader.load().then(() => setIsDictLoading(false));
+  }, []);
 
   const handleGenerate = async (data: { width: number; height: number; blackSquaresRatio: number }) => {
     setIsLoading(true);
     setError(null);
     setDimensions({ width: data.width, height: data.height });
 
+    // Petit délai pour laisser l'UI s'afficher avant de bloquer le thread principal (si l'algo est lourd)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dimensions: { width: data.width, height: data.height },
-          priorityWords,
-          params: {
-            maxBlackSquaresRatio: data.blackSquaresRatio
-          }
-        }),
+      const solver = new GridSolver({
+        width: data.width,
+        height: data.height,
+        priorityWords,
+        maxBlackSquaresRatio: data.blackSquaresRatio
       });
 
-      const result: GenerateResponse = await res.json();
+      const result = await solver.solve();
+      
       setResponse(result);
       setGrid(result.grid);
       
       if (!result.success) {
-        setError(result.errors?.[0] || 'Génération incomplète (Timeout)');
+        setError(result.errors?.[0] || 'Génération incomplète');
       }
-    } catch (err) {
-      setError('Erreur de connexion au serveur.');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la génération.');
     } finally {
       setIsLoading(false);
     }
@@ -83,9 +89,17 @@ export default function Home() {
     doc.save(`gridforge-${dimensions.width}x${dimensions.height}.pdf`);
   };
 
+  if (isDictLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="text-indigo-600 animate-spin" size={48} />
+        <p className="text-slate-600 font-medium animate-pulse">Initialisation du dictionnaire (300k mots)...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
-      {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -110,7 +124,6 @@ export default function Home() {
       </nav>
 
       <main className="max-w-[1600px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Sidebar */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
             <GridControls onGenerate={handleGenerate} isLoading={isLoading} />
@@ -124,9 +137,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Main Canvas */}
         <div className="lg:col-span-9 space-y-6">
-          {/* Status Bar */}
           {response && (
             <div className="flex flex-wrap gap-4">
               <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
@@ -159,7 +170,6 @@ export default function Home() {
           )}
 
           <div className="bg-white rounded-3xl p-12 shadow-sm border border-slate-200 min-h-[600px] flex items-center justify-center relative overflow-hidden">
-            {/* Background pattern */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4F46E5 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
             {grid ? (

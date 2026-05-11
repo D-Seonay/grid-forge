@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 type DictionaryData = Record<string, string[]>;
 
 class DictionaryLoader {
@@ -16,15 +13,12 @@ class DictionaryLoader {
     return DictionaryLoader.instance;
   }
 
-  public async getDictionary(): Promise<DictionaryData> {
-    if (this.dictionary) {
-      return this.dictionary;
-    }
+  public async load(): Promise<DictionaryData> {
+    if (this.dictionary) return this.dictionary;
 
-    const filePath = path.join(process.cwd(), 'src', 'data', 'dictionary.json');
     try {
-      const data = await fs.promises.readFile(filePath, 'utf8');
-      this.dictionary = JSON.parse(data);
+      const response = await fetch('/dictionary.json');
+      this.dictionary = await response.json();
       return this.dictionary!;
     } catch (error) {
       console.error('Failed to load dictionary:', error);

@@ -16,7 +16,7 @@ export class GridSolver {
   private options: SolverOptions;
   private startTime: number = 0;
   private backtracks: number = 0;
-  private TIMEOUT_MS = 8000;
+  private TIMEOUT_MS = 30000; // 30 secondes sur le client
   private slots: Slot[] = [];
 
   constructor(options: SolverOptions) {
@@ -283,14 +283,24 @@ export class GridSolver {
         return await this.backtrack(slotIndex + 1);
     }
 
-    const regex = new RegExp(`^${pattern}$`);
+    // Filtrage ultra-rapide sans Regex
     const allCandidates = dictionaryLoader.getWordsByLength(slot.length);
-    const candidates = allCandidates.filter(word => regex.test(word));
+    const candidates = allCandidates.filter(word => {
+      for (let i = 0; i < pattern.length; i++) {
+        if (pattern[i] !== '.' && word[i] !== pattern[i]) return false;
+      }
+      return true;
+    });
 
     if (candidates.length === 0) return false;
 
-    // On limite à 10 candidats aléatoires pour explorer plus de branches rapidement
-    const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 10);
+    // Sélection aléatoire rapide de 10 candidats sans trier tout le tableau
+    const limit = Math.min(candidates.length, 10);
+    const selectedIndices = new Set<number>();
+    while (selectedIndices.size < limit) {
+      selectedIndices.add(Math.floor(Math.random() * candidates.length));
+    }
+    const shuffled = Array.from(selectedIndices).map(i => candidates[i]);
 
     for (const candidate of shuffled) {
       // Sauvegarde sélective
