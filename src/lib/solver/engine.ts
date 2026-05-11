@@ -103,10 +103,12 @@ export class GridSolver {
   private tryPlaceWithIntersection(word: string): boolean {
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        const char = this.grid[y][x].char;
-        if (char && word.includes(char)) {
-          const charIndex = word.indexOf(char);
-          const dir = (x > 0 && this.grid[y][x - 1].char !== '') || (x < this.width - 1 && this.grid[y][x + 1].char !== '') ? 'H' : 'V';
+        const cell = this.grid[y][x];
+        if (this.isLetter(cell) && word.includes(cell.char)) {
+          const charIndex = word.indexOf(cell.char);
+          const hasLeft = this.isValidCoord(y, x - 1) && this.isLetter(this.grid[y][x - 1]);
+          const hasRight = this.isValidCoord(y, x + 1) && this.isLetter(this.grid[y][x + 1]);
+          const dir = hasLeft || hasRight ? 'H' : 'V';
           const newDir = dir === 'H' ? 'V' : 'H';
           const startX = newDir === 'H' ? x - charIndex : x;
           const startY = newDir === 'V' ? y - charIndex : y;
@@ -121,15 +123,36 @@ export class GridSolver {
   }
 
   private canPlaceWord(word: string, startY: number, startX: number, dir: 'H' | 'V'): boolean {
-    if (startY < 0 || startX < 0 || (dir === 'H' && startX + word.length > this.width) || (dir === 'V' && startY + word.length > this.height)) return false;
+    if (!this.isValidCoord(startY, startX)) return false;
+    if (dir === 'H' && startX + word.length > this.width) return false;
+    if (dir === 'V' && startY + word.length > this.height) return false;
+
+    // Head check
+    const headY = dir === 'V' ? startY - 1 : startY;
+    const headX = dir === 'H' ? startX - 1 : startX;
+    if (this.isValidCoord(headY, headX) && this.isLetter(this.grid[headY][headX])) return false;
+
+    // Tail check
+    const tailY = dir === 'V' ? startY + word.length : startY;
+    const tailX = dir === 'H' ? startX + word.length : startX;
+    if (this.isValidCoord(tailY, tailX) && this.isLetter(this.grid[tailY][tailX])) return false;
+
     for (let i = 0; i < word.length; i++) {
-      const y = dir === 'V' ? startY + i : startY, x = dir === 'H' ? startX + i : startX;
-      if (this.grid[y][x].char !== '' && this.grid[y][x].char !== word[i]) return false;
-      if (this.grid[y][x].char === '') {
-        const neighbors = dir === 'H' ? [{ dy: -1, dx: 0 }, { dy: 1, dx: 0 }] : [{ dy: 0, dx: -1 }, { dy: 0, dx: 1 }];
-        for (const n of neighbors) {
-          const ny = y + n.dy, nx = x + n.dx;
-          if (ny >= 0 && ny < this.height && nx >= 0 && nx < this.width && this.grid[ny][nx].char !== '') return false;
+      const y = dir === 'V' ? startY + i : startY;
+      const x = dir === 'H' ? startX + i : startX;
+      
+      const currentCell = this.grid[y][x];
+      if (currentCell.char !== '' && currentCell.char !== word[i]) return false;
+
+      // Side neighbors check (Strict Separation)
+      const neighbors = dir === 'H' ? [{ dy: -1, dx: 0 }, { dy: 1, dx: 0 }] : [{ dy: 0, dx: -1 }, { dy: 0, dx: 1 }];
+      for (const n of neighbors) {
+        const ny = y + n.dy, nx = x + n.dx;
+        if (this.isValidCoord(ny, nx)) {
+          if (this.isLetter(this.grid[ny][nx])) {
+            // If the cell we are filling is currently empty, it's a "glue" violation
+            if (currentCell.char === '') return false;
+          }
         }
       }
     }
@@ -164,13 +187,13 @@ export class GridSolver {
         const xLimit = isMiddleRow ? Math.ceil(this.width / 2) : this.width;
         
         for (let x = 0; x < xLimit; x++) {
-          if (this.grid[y][x].char !== '') continue;
+          if (this.isLetter(this.grid[y][x])) continue;
           
           if (Math.random() < ratio) {
             const oppY = this.height - 1 - y;
             const oppX = this.width - 1 - x;
             
-            if (this.grid[oppY][oppX].char === '') {
+            if (!this.isLetter(this.grid[oppY][oppX])) {
               this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
               this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
             }
