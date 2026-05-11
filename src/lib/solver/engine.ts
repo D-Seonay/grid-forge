@@ -273,16 +273,24 @@ export class GridSolver {
   private getMostConstrainedSlot(): Slot | null {
     let bestSlot: Slot | null = null;
     let minCandidates = Infinity;
+    let minDistance = Infinity;
+
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
 
     for (const slot of this.slots) {
       const pattern = slot.cells.map(c => this.grid[c.y][c.x].char || '.').join('');
-      if (!pattern.includes('.')) continue; // Déjà rempli
+      if (!pattern.includes('.')) continue;
 
-      const count = this.getValidCandidates(slot, pattern).length;
-      if (count === 0) return slot; // Conflit immédiat, on le renvoie pour déclencher le backtrack
+      const candidatesCount = this.getValidCandidates(slot, pattern).length;
+      if (candidatesCount === 0) return slot;
 
-      if (count < minCandidates) {
-        minCandidates = count;
+      // Distance from center of the slot (first cell for simplicity) to center of grid
+      const dist = Math.sqrt(Math.pow(slot.x - centerX, 2) + Math.pow(slot.y - centerY, 2));
+
+      if (candidatesCount < minCandidates || (candidatesCount === minCandidates && dist < minDistance)) {
+        minCandidates = candidatesCount;
+        minDistance = dist;
         bestSlot = slot;
       }
     }
