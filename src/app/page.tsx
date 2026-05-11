@@ -5,7 +5,9 @@ import GridCanvas from '@/components/grid/GridCanvas';
 import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
 import { Grid, GenerateResponse } from '@/lib/types';
-import { Copy, Download, Share2 } from 'lucide-react';
+import { Copy, Download, FileText } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Home() {
   const [grid, setGrid] = useState<Grid | null>(null);
@@ -80,6 +82,41 @@ export default function Home() {
     downloadAnchorNode.remove();
   };
 
+  const downloadPdf = () => {
+    if (!grid) return;
+    const doc = new jsPDF();
+    doc.text(`GridForge - Grille ${dimensions.width}x${dimensions.height}`, 14, 15);
+    
+    const tableData = grid.map(row => 
+      row.map(cell => cell.type === 'BLACK' ? '' : (cell.char || ''))
+    );
+
+    autoTable(doc, {
+      startY: 25,
+      body: tableData,
+      theme: 'grid',
+      styles: {
+        cellPadding: 2,
+        fontSize: 12,
+        halign: 'center',
+        valign: 'middle',
+        lineWidth: 0.5,
+        lineColor: [0, 0, 0],
+        textColor: [0, 0, 0],
+        minCellHeight: 10,
+      },
+      didParseCell: (data) => {
+        const rowIndex = data.row.index;
+        const colIndex = data.column.index;
+        if (grid[rowIndex][colIndex].type === 'BLACK') {
+          data.cell.styles.fillColor = [0, 0, 0];
+        }
+      }
+    });
+
+    doc.save("grid-forge.pdf");
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -120,11 +157,18 @@ export default function Home() {
                     {copySuccess ? 'Copié !' : 'Copier texte'}
                   </button>
                   <button
+                    onClick={downloadPdf}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <FileText size={16} />
+                    PDF
+                  </button>
+                  <button
                     onClick={downloadJson}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
                   >
                     <Download size={16} />
-                    Exporter JSON
+                    JSON
                   </button>
                 </div>
                 
