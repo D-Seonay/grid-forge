@@ -14,6 +14,7 @@ export interface SolverOptions {
   priorityWords: string[];
   maxBlackSquaresRatio?: number; // Défaut 0.20
   allowSymmetry?: boolean;
+  timeout?: number;
 }
 
 export interface GenerateResponse {
@@ -23,6 +24,8 @@ export interface GenerateResponse {
     executionTime: number;
     backtracks: number;
     fillRate: number;
+    attempts?: number;
+    totalTime?: number;
   };
   errors?: string[];
 }

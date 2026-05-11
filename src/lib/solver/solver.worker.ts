@@ -1,4 +1,4 @@
-import { GridSolver } from './engine';
+import { SolverOrchestrator } from './orchestrator';
 import { dictionaryLoader } from '../dictionary/loader';
 import { SolverOptions } from '../types';
 
@@ -22,8 +22,8 @@ self.onmessage = async (e: MessageEvent) => {
       // S'assurer que le dictionnaire est chargé (au cas où)
       await dictionaryLoader.load();
       
-      const solver = new GridSolver(options);
-      const result = await solver.solve();
+      const orchestrator = new SolverOrchestrator(options);
+      const result = await orchestrator.solve();
       
       self.postMessage({ type: 'RESULT', payload: result });
     } catch (error: any) {

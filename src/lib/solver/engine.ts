@@ -24,7 +24,9 @@ export class GridSolver {
   private options: SolverOptions;
   private startTime: number = 0;
   private backtracks: number = 0;
-  private TIMEOUT_MS = 30000;
+  private get timeoutMs(): number {
+    return this.options.timeout || 30000;
+  }
   private slots: Slot[] = [];
 
   constructor(options: SolverOptions) {
@@ -51,6 +53,7 @@ export class GridSolver {
     try {
       this.placePriorityWords();
       this.generateBlackSquares();
+      if (!this.validateConnectivity()) throw new Error('INVALID_GRID_STRUCTURE');
       this.slots = this.findSlots();
       this.mapIntersections();
 
@@ -147,12 +150,23 @@ export class GridSolver {
   private generateBlackSquares() {
     const ratio = this.options.maxBlackSquaresRatio ?? 0.2;
     if (ratio > 0) {
-      for (let y = 0; y < this.height; y++) {
-        for (let x = 0; x < this.width; x++) {
-          if (this.grid[y][x].char === '' && Math.random() < ratio) {
-            const oppY = this.height - 1 - y, oppX = this.width - 1 - x;
-            this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
-            this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+      for (let y = 0; y < Math.ceil(this.height / 2); y++) {
+        const isMiddleRow = y === this.height - 1 - y;
+        const xLimit = isMiddleRow ? Math.ceil(this.width / 2) : this.width;
+        
+        for (let x = 0; x < xLimit; x++) {
+          // Skip if already set (e.g. by priority words)
+          if (this.grid[y][x].char !== '') continue;
+          
+          if (Math.random() < ratio) {
+            const oppY = this.height - 1 - y;
+            const oppX = this.width - 1 - x;
+            
+            // Check if opposite is also empty
+            if (this.grid[oppY][oppX].char === '') {
+              this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
+              this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+            }
           }
         }
       }
@@ -162,6 +176,21 @@ export class GridSolver {
         if (this.grid[y][x].type === 'EMPTY') this.grid[y][x].type = 'LETTER';
       }
     }
+  }
+
+  private validateConnectivity(): boolean {
+    const slots = this.findSlots();
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (this.grid[y][x].type === 'BLACK') continue;
+        
+        const hasH = slots.some(s => s.direction === 'H' && s.cells.some(c => c.x === x && c.y === y));
+        const hasV = slots.some(s => s.direction === 'V' && s.cells.some(c => c.x === x && c.y === y));
+        
+        if (!hasH || !hasV) return false;
+      }
+    }
+    return true;
   }
 
   // --- STRUCTURE ANALYSIS ---
@@ -214,7 +243,7 @@ export class GridSolver {
   // --- ADVANCED CSP SOLVER ---
 
   private async solveRecursive(): Promise<boolean> {
-    if (Date.now() - this.startTime > this.TIMEOUT_MS) throw new Error('TIMEOUT');
+    if (Date.now() - this.startTime > this.timeoutMs) throw new Error('TIMEOUT');
 
     // 1. Heuristique MRV : Trouver le slot le plus contraint (moins de candidats)
     const nextSlot = this.getMostConstrainedSlot();
@@ -246,16 +275,24 @@ export class GridSolver {
   private getMostConstrainedSlot(): Slot | null {
     let bestSlot: Slot | null = null;
     let minCandidates = Infinity;
+    let minDistance = Infinity;
+
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
 
     for (const slot of this.slots) {
       const pattern = slot.cells.map(c => this.grid[c.y][c.x].char || '.').join('');
-      if (!pattern.includes('.')) continue; // Déjà rempli
+      if (!pattern.includes('.')) continue;
 
-      const count = this.getValidCandidates(slot, pattern).length;
-      if (count === 0) return slot; // Conflit immédiat, on le renvoie pour déclencher le backtrack
+      const candidatesCount = this.getValidCandidates(slot, pattern).length;
+      if (candidatesCount === 0) return slot;
 
-      if (count < minCandidates) {
-        minCandidates = count;
+      // Distance from center of the slot (first cell for simplicity) to center of grid
+      const dist = Math.sqrt(Math.pow(slot.x - centerX, 2) + Math.pow(slot.y - centerY, 2));
+
+      if (candidatesCount < minCandidates || (candidatesCount === minCandidates && dist < minDistance)) {
+        minCandidates = candidatesCount;
+        minDistance = dist;
         bestSlot = slot;
       }
     }
