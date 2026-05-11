@@ -25,7 +25,7 @@ export class GridSolver {
   private startTime: number = 0;
   private backtracks: number = 0;
   private get timeoutMs(): number {
-    return this.options.timeout || 30000;
+    return this.options.timeout || 300000;
   }
   private slots: Slot[] = [];
 

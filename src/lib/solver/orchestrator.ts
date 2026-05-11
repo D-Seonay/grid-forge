@@ -3,8 +3,8 @@ import { SolverOptions, GenerateResponse } from '../types';
 
 export class SolverOrchestrator {
   private options: SolverOptions;
-  private maxAttempts = 10;
-  private globalTimeout = 30000;
+  private maxAttempts = 50;
+  private globalTimeout = 600000;
 
   constructor(options: SolverOptions) {
     this.options = options;

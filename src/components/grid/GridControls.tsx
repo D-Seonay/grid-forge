@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { Settings2, Wand2, Square } from 'lucide-react';
 
 const formSchema = z.object({
-  width: z.number().min(3, "Min 3").max(20, "Max 20"),
-  height: z.number().min(3, "Min 3").max(20, "Max 20"),
+  width: z.number().min(3, "Min 3").max(100, "Max 100"),
+  height: z.number().min(3, "Min 3").max(100, "Max 100"),
   blackSquaresRatio: z.number().min(0).max(0.5),
 });
 

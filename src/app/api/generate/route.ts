@@ -5,8 +5,8 @@ import { dictionaryLoader } from '@/lib/dictionary/loader';
 
 const requestSchema = z.object({
   dimensions: z.object({
-    width: z.number().min(3).max(20),
-    height: z.number().min(3).max(20),
+    width: z.number().min(3).max(100),
+    height: z.number().min(3).max(100),
   }),
   priorityWords: z.array(z.string()).optional().default([]),
   params: z.object({
