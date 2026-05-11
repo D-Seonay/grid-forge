@@ -221,41 +221,49 @@ export class GridSolver {
           }
         }
       }
-    }
 
-    // Auto-fix singletons: convert white cells that don't belong to 2 slots into black squares
-    let changed = true;
-    while (changed) {
-      changed = false;
-      const slots = this.findSlots();
-      for (let y = 0; y < this.height; y++) {
-        for (let x = 0; x < this.width; x++) {
-          if (this.grid[y][x].char === '' || this.grid[y][x].type === 'LETTER') {
-            const hasH = slots.some(s => s.direction === 'H' && s.cells.some(c => c.x === x && c.y === y));
-            const hasV = slots.some(s => s.direction === 'V' && s.cells.some(c => c.x === x && c.y === y));
-            
-            if (!hasH || !hasV) {
-              const oppY = this.height - 1 - y;
-              const oppX = this.width - 1 - x;
+      // Auto-fix singletons: convert white cells that don't belong to 2 slots into black squares
+      let changed = true;
+      while (changed) {
+        changed = false;
+        const slots = this.findSlots();
+        for (let y = 0; y < this.height; y++) {
+          for (let x = 0; x < this.width; x++) {
+            if (this.grid[y][x].char === '' || this.grid[y][x].type === 'LETTER') {
+              const hasH = slots.some(s => s.direction === 'H' && s.cells.some(c => c.x === x && c.y === y));
+              const hasV = slots.some(s => s.direction === 'V' && s.cells.some(c => c.x === x && c.y === y));
               
-              // Only convert if it's not a priority word cell
-              if (!this.grid[y][x].isPriority && !this.grid[oppY][oppX].isPriority) {
-                this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
-                this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
-                changed = true;
-                // Re-find slots because structure changed
-                break; 
+              if (!hasH || !hasV) {
+                const oppY = this.height - 1 - y;
+                const oppX = this.width - 1 - x;
+                
+                // Only convert if it's not a priority word cell
+                if (!this.grid[y][x].isPriority && !this.grid[oppY][oppX].isPriority) {
+                  this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
+                  this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+                  changed = true;
+                  // Re-find slots because structure changed
+                  break; 
+                }
               }
             }
           }
+          if (changed) break;
         }
-        if (changed) break;
       }
     }
 
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        if (this.grid[y][x].type === 'EMPTY') this.grid[y][x].type = 'LETTER';
+        if (this.grid[y][x].type === 'EMPTY') {
+          this.grid[y][x].type = 'LETTER';
+        }
+        // Si le ratio est 0 et que la case est encore vide après le solver, 
+        // on met une lettre au hasard pour boucher les trous sans faire de mots
+        if (this.options.maxBlackSquaresRatio === 0 && this.grid[y][x].char === '') {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+          this.grid[y][x].char = chars.charAt(Math.floor(Math.random() * chars.length));
+        }
       }
     }
   }
