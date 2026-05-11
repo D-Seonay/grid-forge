@@ -207,13 +207,11 @@ export default function Home() {
             </div>
           )}
 
-          <div className="bg-white rounded-3xl p-12 shadow-sm border border-slate-200 min-h-[600px] flex items-center justify-center relative overflow-hidden transition-all">
+          <div className="bg-white rounded-3xl p-4 md:p-8 shadow-sm border border-slate-200 min-h-[700px] max-h-[85vh] flex items-center justify-center relative overflow-hidden transition-all">
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4F46E5 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
             {grid ? (
-              <div className="relative z-10 transition-all duration-500 ease-out transform scale-100">
-                <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} showWords={showWords} />
-              </div>
+              <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} showWords={showWords} />
             ) : (
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 bg-indigo-50 text-indigo-200 rounded-full flex items-center justify-center mx-auto transition-transform hover:scale-110 duration-500">

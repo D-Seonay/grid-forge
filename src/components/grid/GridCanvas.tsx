@@ -10,36 +10,47 @@ interface GridCanvasProps {
 }
 
 const GridCanvas: React.FC<GridCanvasProps> = ({ grid, width, height, showWords = true }) => {
+  // Calcul de la taille de cellule idéale en fonction de la dimension de la grille
+  const getCellSize = () => {
+    if (width > 50) return 'w-4 h-4 text-[8px]';
+    if (width > 30) return 'w-6 h-6 text-xs';
+    if (width > 20) return 'w-8 h-8 text-sm';
+    return 'w-10 h-10 md:w-12 md:h-12 text-base md:text-xl';
+  };
+
+  const cellSizeClass = getCellSize();
+
   return (
-    <div 
-      className="inline-grid bg-slate-900 gap-[1px] border-[2px] border-slate-900 shadow-2xl"
-      style={{ 
-        gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
-      }}
-    >
-      {grid.map((row, y) => 
-        row.map((cell, x) => (
-          <div
-            key={`${x}-${y}`}
-            className={cn(
-              "flex items-center justify-center font-bold uppercase transition-all duration-300 relative",
-              "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-sm sm:text-base md:text-xl",
-              "bg-white",
-              cell.isPriority && "text-indigo-600 bg-indigo-50/30",
-              showWords && cell.isFiller && "text-slate-300 bg-slate-50/50"
-            )}
-          >
-            {cell.char ? (
-              <span className={cn(
-                "animate-in fade-in zoom-in duration-500",
-                showWords && !cell.isFiller && "text-indigo-700 font-black scale-110"
-              )}>
-                {cell.char}
-              </span>
-            ) : null}
-          </div>
-        ))
-      )}
+    <div className="w-full h-full overflow-auto custom-scrollbar flex items-start justify-start p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+      <div 
+        className="inline-grid bg-slate-900 gap-[1px] border-[2px] border-slate-900 shadow-2xl mx-auto"
+        style={{ 
+          gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
+        }}
+      >
+        {grid.map((row, y) => 
+          row.map((cell, x) => (
+            <div
+              key={`${x}-${y}`}
+              className={cn(
+                "flex items-center justify-center font-bold uppercase transition-all duration-200 relative bg-white shrink-0",
+                cellSizeClass,
+                cell.isPriority && "text-indigo-600 bg-indigo-50/30",
+                showWords && cell.isFiller && "text-slate-300 bg-slate-50/50"
+              )}
+            >
+              {cell.char ? (
+                <span className={cn(
+                  "animate-in fade-in zoom-in duration-500",
+                  showWords && !cell.isFiller && "text-indigo-700 font-black"
+                )}>
+                  {cell.char}
+                </span>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
