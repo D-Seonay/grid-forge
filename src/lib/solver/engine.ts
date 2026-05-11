@@ -327,9 +327,13 @@ export class GridSolver {
   private async solveRecursive(): Promise<boolean> {
     if (Date.now() - this.startTime > this.timeoutMs) throw new Error('TIMEOUT');
 
-    // 1. Heuristique MRV : Trouver le slot le plus contraint (moins de candidats)
+    // 1. Heuristique MRV
     const nextSlot = this.getMostConstrainedSlot();
-    if (!nextSlot) return true; // Fini !
+    
+    // Si plus de slots vides, on vérifie si le taux de remplissage est satisfaisant
+    if (!nextSlot) {
+      return this.calculateFillRate() >= 0.8;
+    }
 
     this.backtracks++;
     const pattern = nextSlot.cells.map(c => this.grid[c.y][c.x].char || '.').join('');
@@ -337,13 +341,14 @@ export class GridSolver {
 
     if (candidates.length === 0) return false;
 
-    // 2. Heuristique LCV (Optionnel ici, on utilise un shuffle limité pour la variété)
-    const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 15);
+    // Prioriser les mots qui laissent le plus d'options aux voisins (Heuristique simplifiée)
+    const sortedCandidates = candidates
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 25); // Augmenté pour explorer plus de possibilités
 
-    for (const word of shuffled) {
+    for (const word of sortedCandidates) {
       const backup = this.applyWord(nextSlot, word);
       
-      // 3. Forward Checking : Vérifier si ce mot bloque un voisin
       if (this.isConsistent(nextSlot)) {
         if (await this.solveRecursive()) return true;
       }

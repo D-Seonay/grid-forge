@@ -18,7 +18,7 @@ interface GridControlsProps {
 const GridControls: React.FC<GridControlsProps> = ({ onGenerate, isLoading }) => {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { width: 10, height: 10, blackSquaresRatio: 0.2 }
+    defaultValues: { width: 10, height: 10, blackSquaresRatio: 0.1 }
   });
 
   const currentRatio = watch('blackSquaresRatio');
