@@ -4,6 +4,7 @@ export interface Cell {
   char: string; // "" si vide, "#" si noir, "A-Z" si lettre
   type: CellType;
   isPriority: boolean; // Marqueur pour les mots imposés par l'utilisateur
+  isFiller?: boolean; // Marqueur pour les lettres de remplissage aléatoire
 }
 
 export type Grid = Cell[][];

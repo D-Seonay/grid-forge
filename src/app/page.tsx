@@ -5,7 +5,8 @@ import GridCanvas from '@/components/grid/GridCanvas';
 import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
 import { Grid, GenerateResponse } from '@/lib/types';
-import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2, Eye, EyeOff } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -18,6 +19,7 @@ export default function Home() {
   const [response, setResponse] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showWords, setShowWords] = useState(true);
 
   // Utilisation d'une Ref pour garder une instance unique du Worker
   const workerRef = useRef<Worker | null>(null);
@@ -133,6 +135,16 @@ export default function Home() {
           <div className="flex items-center gap-3">
             {grid && (
               <>
+                <button 
+                  onClick={() => setShowWords(!showWords)} 
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2",
+                    showWords ? "text-indigo-600 bg-indigo-50 hover:bg-indigo-100" : "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  )}
+                >
+                  {showWords ? <Eye size={16} /> : <EyeOff size={16} />}
+                  {showWords ? 'Masquer mots' : 'Voir mots'}
+                </button>
                 <button onClick={copyToClipboard} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2">
                   <Copy size={16} /> {copySuccess ? 'Copié' : 'Copier'}
                 </button>
@@ -200,7 +212,7 @@ export default function Home() {
             
             {grid ? (
               <div className="relative z-10 transition-all duration-500 ease-out transform scale-100">
-                <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} />
+                <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} showWords={showWords} />
               </div>
             ) : (
               <div className="text-center space-y-6">

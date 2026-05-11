@@ -218,10 +218,9 @@ export class GridSolver {
             
             if (!this.isLetter(this.grid[oppY][oppX])) {
               const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
-              // On utilise le type 'BLACK' pour la logique interne du solver, 
-              // mais on lui donne une lettre au lieu de '#'
-              this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false };
-              this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false };
+              // On utilise le type 'BLACK' pour la logique interne du solver
+              this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false, isFiller: true };
+              this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false, isFiller: true };
             }
           }
         }
@@ -244,8 +243,8 @@ export class GridSolver {
                 
                 if (!this.grid[y][x].isPriority && !this.grid[oppY][oppX].isPriority) {
                   const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
-                  this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false };
-                  this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false };
+                  this.grid[y][x] = { char: randomChar, type: 'BLACK', isPriority: false, isFiller: true };
+                  this.grid[oppY][oppX] = { char: randomChar, type: 'BLACK', isPriority: false, isFiller: true };
                   changed = true;
                   break; 
                 }
@@ -271,6 +270,7 @@ export class GridSolver {
         if (cell.char === '' || cell.type === 'EMPTY') {
           cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
           cell.type = 'LETTER';
+          cell.isFiller = true;
         }
       }
     }
