@@ -234,26 +234,59 @@ export class GridSolver {
   }
 
   private async backtrack(slotIndex: number): Promise<boolean> {
-    if (Date.now() - this.startTime > this.TIMEOUT_MS) throw new Error('TIMEOUT');
+    if (Date.now() - this.startTime > this.TIMEOUT_MS) {
+      throw new Error('TIMEOUT : La grille est trop complexe pour être terminée en 8s.');
+    }
+
     if (slotIndex >= this.slots.length) return true;
 
     this.backtracks++;
     const slot = this.slots[slotIndex];
+    
+    // Pattern actuel
     const pattern = slot.cells.map(c => this.grid[c.y][c.x].char || '.').join('');
-    if (!pattern.includes('.')) return await this.backtrack(slotIndex + 1);
+    
+    // Si déjà rempli (via priorité ou intersection précédente)
+    if (!pattern.includes('.')) {
+        return await this.backtrack(slotIndex + 1);
+    }
 
     const regex = new RegExp(`^${pattern}$`);
-    const candidates = dictionaryLoader.getWordsByLength(slot.length).filter(word => regex.test(word));
-    const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 20); // Limiter pour performance
+    const allCandidates = dictionaryLoader.getWordsByLength(slot.length);
+    const candidates = allCandidates.filter(word => regex.test(word));
+
+    if (candidates.length === 0) return false;
+
+    // On limite à 10 candidats aléatoires pour explorer plus de branches rapidement
+    const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, 10);
 
     for (const candidate of shuffled) {
-      const previousChars = slot.cells.map(c => this.grid[c.y][c.x].char);
-      slot.cells.forEach((c, i) => this.grid[c.y][c.x].char = candidate[i]);
-      if (await this.backtrack(slotIndex + 1)) return true;
-      slot.cells.forEach((c, i) => {
-        if (!this.grid[c.y][c.x].isPriority) this.grid[c.y][c.x].char = previousChars[i];
-      });
+      // Sauvegarde sélective
+      const savedChars: {x: number, y: number, char: string}[] = [];
+      
+      let possible = true;
+      for (let i = 0; i < slot.cells.length; i++) {
+        const c = slot.cells[i];
+        if (this.grid[c.y][c.x].char === '') {
+            savedChars.push({ x: c.x, y: c.y, char: '' });
+            this.grid[c.y][c.x].char = candidate[i];
+        } else if (this.grid[c.y][c.x].char !== candidate[i]) {
+            // Conflit imprévu
+            possible = false;
+            break;
+        }
+      }
+
+      if (possible && await this.backtrack(slotIndex + 1)) {
+        return true;
+      }
+
+      // Rollback
+      for (const saved of savedChars) {
+        this.grid[saved.y][saved.x].char = '';
+      }
     }
+
     return false;
   }
 

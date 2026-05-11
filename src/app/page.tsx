@@ -34,10 +34,12 @@ export default function Home() {
 
       const result: GenerateResponse = await response.json();
 
-      if (result.success && result.grid) {
-        setGrid(result.grid);
+      setGrid(result.grid); // On affiche la grille quoi qu'il arrive si elle est présente
+      
+      if (!result.success) {
+        setError(result.errors?.[0] || 'La génération a échoué ou a été interrompue (timeout).');
       } else {
-        setError(result.errors?.[0] || 'Une erreur est survenue lors de la génération.');
+        setError(null);
       }
     } catch (err) {
       setError('Impossible de contacter le serveur.');
