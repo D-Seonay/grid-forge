@@ -54,6 +54,7 @@ export class GridSolver {
       this.placePriorityWords();
       this.generateBlackSquares();
       if (!this.validateConnectivity()) throw new Error('INVALID_GRID_STRUCTURE');
+
       this.slots = this.findSlots();
       this.mapIntersections();
 
@@ -155,14 +156,12 @@ export class GridSolver {
         const xLimit = isMiddleRow ? Math.ceil(this.width / 2) : this.width;
         
         for (let x = 0; x < xLimit; x++) {
-          // Skip if already set (e.g. by priority words)
           if (this.grid[y][x].char !== '') continue;
           
           if (Math.random() < ratio) {
             const oppY = this.height - 1 - y;
             const oppX = this.width - 1 - x;
             
-            // Check if opposite is also empty
             if (this.grid[oppY][oppX].char === '') {
               this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
               this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
@@ -171,6 +170,37 @@ export class GridSolver {
         }
       }
     }
+
+    // Auto-fix singletons: convert white cells that don't belong to 2 slots into black squares
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const slots = this.findSlots();
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          if (this.grid[y][x].char === '' || this.grid[y][x].type === 'LETTER') {
+            const hasH = slots.some(s => s.direction === 'H' && s.cells.some(c => c.x === x && c.y === y));
+            const hasV = slots.some(s => s.direction === 'V' && s.cells.some(c => c.x === x && c.y === y));
+            
+            if (!hasH || !hasV) {
+              const oppY = this.height - 1 - y;
+              const oppX = this.width - 1 - x;
+              
+              // Only convert if it's not a priority word cell
+              if (!this.grid[y][x].isPriority && !this.grid[oppY][oppX].isPriority) {
+                this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
+                this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+                changed = true;
+                // Re-find slots because structure changed
+                break; 
+              }
+            }
+          }
+        }
+        if (changed) break;
+      }
+    }
+
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         if (this.grid[y][x].type === 'EMPTY') this.grid[y][x].type = 'LETTER';
