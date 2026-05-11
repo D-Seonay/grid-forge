@@ -25,6 +25,7 @@ export interface GenerateResponse {
     executionTime: number;
     backtracks: number;
     fillRate: number;
+    fillerRate: number;
     attempts?: number;
     totalTime?: number;
   };

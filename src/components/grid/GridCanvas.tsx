@@ -6,10 +6,10 @@ interface GridCanvasProps {
   grid: Grid;
   width: number;
   height: number;
-  showWords?: boolean;
+  viewMode?: 'uniform' | 'solution' | 'structure';
 }
 
-const GridCanvas: React.FC<GridCanvasProps> = ({ grid, width, height, showWords = true }) => {
+const GridCanvas: React.FC<GridCanvasProps> = ({ grid, width, height, viewMode = 'solution' }) => {
   // Calcul de la taille de cellule idéale en fonction de la dimension de la grille
   const getCellSize = () => {
     if (width > 50) return 'w-4 h-4 text-[8px]';
@@ -29,26 +29,40 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ grid, width, height, showWords 
         }}
       >
         {grid.map((row, y) => 
-          row.map((cell, x) => (
-            <div
-              key={`${x}-${y}`}
-              className={cn(
-                "flex items-center justify-center font-bold uppercase transition-all duration-200 relative bg-white shrink-0",
-                cellSizeClass,
-                cell.isPriority && "text-indigo-600 bg-indigo-50/30",
-                showWords && cell.isFiller && "text-slate-300 bg-slate-50/50"
-              )}
-            >
-              {cell.char ? (
-                <span className={cn(
-                  "animate-in fade-in zoom-in duration-500",
-                  showWords && !cell.isFiller && "text-indigo-700 font-black"
-                )}>
-                  {cell.char}
-                </span>
-              ) : null}
-            </div>
-          ))
+          row.map((cell, x) => {
+            const isFiller = cell.isFiller;
+            const isPriority = cell.isPriority;
+            const isDictionaryWord = !isFiller && !isPriority;
+
+            return (
+              <div
+                key={`${x}-${y}`}
+                className={cn(
+                  "flex items-center justify-center font-bold uppercase transition-all duration-200 relative bg-white shrink-0",
+                  cellSizeClass,
+                  // Couleurs de fond en mode Solution ou Structure
+                  viewMode !== 'uniform' && isPriority && "bg-indigo-50/50",
+                  viewMode !== 'uniform' && isDictionaryWord && "bg-emerald-50/30",
+                  viewMode === 'solution' && isFiller && "bg-slate-50/50"
+                )}
+              >
+                {cell.char ? (
+                  <span className={cn(
+                    "animate-in fade-in zoom-in duration-500",
+                    // Masquage total en mode structure pour les fillers
+                    viewMode === 'structure' && isFiller && "opacity-0",
+                    // Style des textes
+                    viewMode === 'uniform' && "text-slate-900",
+                    viewMode !== 'uniform' && isPriority && "text-indigo-600 font-black",
+                    viewMode !== 'uniform' && isDictionaryWord && "text-emerald-700 font-bold",
+                    viewMode === 'solution' && isFiller && "text-slate-300 font-normal"
+                  )}>
+                    {cell.char}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

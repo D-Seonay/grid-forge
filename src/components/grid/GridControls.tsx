@@ -52,7 +52,7 @@ const GridControls: React.FC<GridControlsProps> = ({ onGenerate, isLoading }) =>
       <div className="space-y-3">
         <div className="flex justify-between items-center ml-1">
           <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-            <Square size={12} className="fill-slate-900" /> Densité cases noires
+            <Square size={12} className="fill-slate-900" /> Lettres de remplissage
           </label>
           <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
             {Math.round(currentRatio * 100)}%

@@ -6,7 +6,7 @@ import GridControls from '@/components/grid/GridControls';
 import PriorityPanel from '@/components/word-list/PriorityPanel';
 import { Grid, GenerateResponse } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Copy, Download, FileText, Sparkles, AlertCircle, CheckCircle2, Clock, BarChart3, Loader2, Eye, EyeOff, Layers, Square } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -19,7 +19,7 @@ export default function Home() {
   const [response, setResponse] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [showWords, setShowWords] = useState(true);
+  const [viewMode, setViewMode] = useState<'uniform' | 'solution' | 'structure'>('solution');
 
   // Utilisation d'une Ref pour garder une instance unique du Worker
   const workerRef = useRef<Worker | null>(null);
@@ -136,14 +136,25 @@ export default function Home() {
             {grid && (
               <>
                 <button 
-                  onClick={() => setShowWords(!showWords)} 
+                  onClick={() => {
+                    if (viewMode === 'uniform') setViewMode('solution');
+                    else if (viewMode === 'solution') setViewMode('structure');
+                    else setViewMode('uniform');
+                  }} 
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2",
-                    showWords ? "text-indigo-600 bg-indigo-50 hover:bg-indigo-100" : "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    viewMode === 'uniform' && "text-slate-600 bg-slate-100 hover:bg-slate-200",
+                    viewMode === 'solution' && "text-indigo-600 bg-indigo-50 hover:bg-indigo-100",
+                    viewMode === 'structure' && "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                   )}
                 >
-                  {showWords ? <Eye size={16} /> : <EyeOff size={16} />}
-                  {showWords ? 'Masquer mots' : 'Voir mots'}
+                  {viewMode === 'uniform' && <EyeOff size={16} />}
+                  {viewMode === 'solution' && <Eye size={16} />}
+                  {viewMode === 'structure' && <Layers size={16} />}
+                  
+                  {viewMode === 'uniform' && 'Mode Jeu'}
+                  {viewMode === 'solution' && 'Solution'}
+                  {viewMode === 'structure' && 'Structure'}
                 </button>
                 <button onClick={copyToClipboard} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2">
                   <Copy size={16} /> {copySuccess ? 'Copié' : 'Copier'}
@@ -188,8 +199,17 @@ export default function Home() {
                   <BarChart3 size={18} />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1 tracking-wider">Remplissage</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1 tracking-wider">Taux de mots</p>
                   <p className="text-sm font-semibold">{(response.stats.fillRate * 100).toFixed(1)}%</p>
+                </div>
+              </div>
+              <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                <div className="bg-slate-50 p-2 rounded-lg text-slate-400">
+                  <Square size={18} />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1 tracking-wider">Remplissage</p>
+                  <p className="text-sm font-semibold">{(response.stats.fillerRate * 100).toFixed(1)}%</p>
                 </div>
               </div>
               {error && (
@@ -211,7 +231,7 @@ export default function Home() {
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#4F46E5 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
             {grid ? (
-              <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} showWords={showWords} />
+              <GridCanvas grid={grid} width={dimensions.width} height={dimensions.height} viewMode={viewMode} />
             ) : (
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 bg-indigo-50 text-indigo-200 rounded-full flex items-center justify-center mx-auto transition-transform hover:scale-110 duration-500">

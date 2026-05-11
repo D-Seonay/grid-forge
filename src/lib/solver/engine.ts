@@ -69,32 +69,7 @@ export class GridSolver {
       // On lance le backtracking sur un ensemble de slots non-remplis
       const success = await this.solveRecursive();
 
-      // --- PHASE FINALE : Conversion visuelle ---
-      // On ne le fait qu'ici pour ne pas perturber le solver
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      for (let y = 0; y < this.height; y++) {
-        for (let x = 0; x < this.width; x++) {
-          const cell = this.grid[y][x];
-          
-          // Les cases noires deviennent des lettres de remplissage
-          if (cell.type === 'BLACK') {
-            cell.type = 'LETTER';
-            cell.isFiller = true;
-          }
-          
-          // Les cases restées vides (inaccessibles) deviennent aussi du remplissage
-          if (cell.char === '' || cell.type === 'EMPTY') {
-            cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
-            cell.type = 'LETTER';
-            cell.isFiller = true;
-          }
-
-          // Par sécurité, si c'est un mot prioritaire, ce n'est PAS un filler
-          if (cell.isPriority) {
-            cell.isFiller = false;
-          }
-        }
-      }
+      this.finalizeGrid();
 
       return {
         success,
@@ -103,9 +78,11 @@ export class GridSolver {
           executionTime: Date.now() - this.startTime,
           backtracks: this.backtracks,
           fillRate: this.calculateFillRate(),
+          fillerRate: this.calculateFillerRate(),
         },
       };
     } catch (error: any) {
+      this.finalizeGrid();
       return {
         success: false,
         grid: this.grid,
@@ -113,9 +90,37 @@ export class GridSolver {
           executionTime: Date.now() - this.startTime,
           backtracks: this.backtracks,
           fillRate: this.calculateFillRate(),
+          fillerRate: this.calculateFillerRate(),
         },
         errors: [error.message || 'Échec de la génération'],
       };
+    }
+  }
+
+  private finalizeGrid() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const cell = this.grid[y][x];
+        
+        // Les cases noires deviennent des lettres de remplissage
+        if (cell.type === 'BLACK') {
+          cell.type = 'LETTER';
+          cell.isFiller = true;
+        }
+        
+        // Les cases restées vides deviennent aussi du remplissage
+        if (cell.char === '' || cell.type === 'EMPTY') {
+          cell.char = chars.charAt(Math.floor(Math.random() * chars.length));
+          cell.type = 'LETTER';
+          cell.isFiller = true;
+        }
+
+        // Sécurité pour les mots prioritaires
+        if (cell.isPriority) {
+          cell.isFiller = false;
+        }
+      }
     }
   }
 
@@ -455,15 +460,23 @@ export class GridSolver {
   }
 
   private calculateFillRate(): number {
-    let filled = 0, total = 0;
+    let wordCells = 0, totalCells = this.width * this.height;
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        if (this.grid[y][x].type !== 'BLACK') {
-          total++;
-          if (this.grid[y][x].char !== '') filled++;
-        }
+        const cell = this.grid[y][x];
+        if (cell.char !== '' && !cell.isFiller) wordCells++;
       }
     }
-    return total === 0 ? 0 : filled / total;
+    return wordCells / totalCells;
+  }
+
+  private calculateFillerRate(): number {
+    let fillerCells = 0, totalCells = this.width * this.height;
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (this.grid[y][x].isFiller) fillerCells++;
+      }
+    }
+    return fillerCells / totalCells;
   }
 }
