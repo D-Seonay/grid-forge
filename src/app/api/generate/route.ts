@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GridSolver } from '@/lib/solver/engine';
+import { SolverOrchestrator } from '@/lib/solver/orchestrator';
 import { dictionaryLoader } from '@/lib/dictionary/loader';
 
 const requestSchema = z.object({
@@ -22,14 +22,14 @@ export async function POST(req: NextRequest) {
     // Ensure dictionary is loaded
     await dictionaryLoader.load();
 
-    const solver = new GridSolver({
+    const orchestrator = new SolverOrchestrator({
       width: validatedData.dimensions.width,
       height: validatedData.dimensions.height,
       priorityWords: validatedData.priorityWords,
       maxBlackSquaresRatio: validatedData.params?.maxBlackSquaresRatio,
     });
 
-    const response = await solver.solve();
+    const response = await orchestrator.solve();
 
     return NextResponse.json(response);
   } catch (error) {

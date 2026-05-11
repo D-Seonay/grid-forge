@@ -24,7 +24,9 @@ export class GridSolver {
   private options: SolverOptions;
   private startTime: number = 0;
   private backtracks: number = 0;
-  private TIMEOUT_MS = 30000;
+  private get timeoutMs(): number {
+    return this.options.timeout || 30000;
+  }
   private slots: Slot[] = [];
 
   constructor(options: SolverOptions) {
@@ -241,7 +243,7 @@ export class GridSolver {
   // --- ADVANCED CSP SOLVER ---
 
   private async solveRecursive(): Promise<boolean> {
-    if (Date.now() - this.startTime > this.TIMEOUT_MS) throw new Error('TIMEOUT');
+    if (Date.now() - this.startTime > this.timeoutMs) throw new Error('TIMEOUT');
 
     // 1. Heuristique MRV : Trouver le slot le plus contraint (moins de candidats)
     const nextSlot = this.getMostConstrainedSlot();

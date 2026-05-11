@@ -17,7 +17,10 @@ export class SolverOrchestrator {
     for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
       if (Date.now() - startTime > this.globalTimeout) break;
 
-      const solver = new GridSolver(this.options);
+      const solver = new GridSolver({
+        ...this.options,
+        timeout: 5000
+      });
       try {
         const response = await solver.solve();
         lastResponse = response;
@@ -30,7 +33,7 @@ export class SolverOrchestrator {
               attempts: attempt,
               totalTime: Date.now() - startTime
             }
-          } as any;
+          };
         }
       } catch (error: any) {
         // Handle INVALID_GRID_STRUCTURE or other retryable errors
