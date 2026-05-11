@@ -171,6 +171,38 @@ export class GridSolver {
   }
 
   private generateBlackSquares() {
+    const ratio = this.options.maxBlackSquaresRatio !== undefined ? this.options.maxBlackSquaresRatio : 0.2;
+    
+    if (ratio === 0) {
+      // Si ratio 0, on transforme tout le vide directement en LETTER
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          if (this.grid[y][x].type === 'EMPTY') {
+            this.grid[y][x].type = 'LETTER';
+          }
+        }
+      }
+      return;
+    }
+
+    const targetBlackCells = Math.floor(this.width * this.height * ratio);
+    let currentBlackCells = 0;
+
+    // Remplissage aléatoire avec symétrie centrale (180°)
+    for (let i = 0; i < 100 && currentBlackCells < targetBlackCells; i++) {
+      const y = Math.floor(Math.random() * this.height);
+      const x = Math.floor(Math.random() * this.width);
+      
+      const oppY = this.height - 1 - y;
+      const oppX = this.width - 1 - x;
+
+      if (this.grid[y][x].type === 'EMPTY' && this.grid[oppY][oppX].type === 'EMPTY') {
+        this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
+        this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+        currentBlackCells += (y === oppY && x === oppX) ? 1 : 2;
+      }
+    }
+
     // Phase 2: On entoure les mots prioritaires de cases noires pour définir la structure
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {

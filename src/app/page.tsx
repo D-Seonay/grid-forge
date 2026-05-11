@@ -19,18 +19,21 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  const handleGenerate = async (data: { width: number; height: number }) => {
+  const handleGenerate = async (data: { width: number; height: number; blackSquaresRatio: number }) => {
     setIsLoading(true);
     setError(null);
-    setDimensions(data);
+    setDimensions({ width: data.width, height: data.height });
 
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dimensions: data,
+          dimensions: { width: data.width, height: data.height },
           priorityWords,
+          params: {
+            maxBlackSquaresRatio: data.blackSquaresRatio
+          }
         }),
       });
 
