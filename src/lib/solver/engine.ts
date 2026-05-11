@@ -147,12 +147,20 @@ export class GridSolver {
   private generateBlackSquares() {
     const ratio = this.options.maxBlackSquaresRatio ?? 0.2;
     if (ratio > 0) {
-      for (let y = 0; y < this.height; y++) {
+      for (let y = 0; y < Math.ceil(this.height / 2); y++) {
         for (let x = 0; x < this.width; x++) {
-          if (this.grid[y][x].char === '' && Math.random() < ratio) {
-            const oppY = this.height - 1 - y, oppX = this.width - 1 - x;
-            this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
-            this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+          // Skip if already set (e.g. by priority words)
+          if (this.grid[y][x].char !== '') continue;
+          
+          if (Math.random() < ratio) {
+            const oppY = this.height - 1 - y;
+            const oppX = this.width - 1 - x;
+            
+            // Check if opposite is also empty
+            if (this.grid[oppY][oppX].char === '') {
+              this.grid[y][x] = { char: '#', type: 'BLACK', isPriority: false };
+              this.grid[oppY][oppX] = { char: '#', type: 'BLACK', isPriority: false };
+            }
           }
         }
       }
