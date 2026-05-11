@@ -3,18 +3,36 @@ import { Plus, X, ListTodo } from 'lucide-react';
 
 interface PriorityPanelProps {
   words: string[];
-  onAddWord: (word: string) => void;
+  onAddWords: (words: string[]) => void;
   onRemoveWord: (index: number) => void;
 }
 
-const PriorityPanel: React.FC<PriorityPanelProps> = ({ words, onAddWord, onRemoveWord }) => {
+const PriorityPanel: React.FC<PriorityPanelProps> = ({ words, onAddWords, onRemoveWord }) => {
   const [inputValue, setInputValue] = useState('');
 
   const handleAdd = () => {
-    if (inputValue.trim()) {
-      onAddWord(inputValue.trim().toUpperCase());
-      setInputValue('');
+    if (!inputValue.trim()) return;
+
+    // Split by comma or space and clean each part
+    const rawParts = inputValue.split(/[,\s]+/);
+    const validWords: string[] = [];
+
+    rawParts.forEach(part => {
+      const cleanWord = part
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/[^a-zA-Z]/g, "")       // Keep only letters
+        .toUpperCase();
+      
+      if (cleanWord.length >= 2) {
+        validWords.push(cleanWord);
+      }
+    });
+
+    if (validWords.length > 0) {
+      onAddWords(validWords);
     }
+    setInputValue('');
   };
 
   return (

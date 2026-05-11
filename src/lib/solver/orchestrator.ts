@@ -58,7 +58,7 @@ export class SolverOrchestrator {
     return bestResponse || lastResponse || { 
       success: false, 
       grid: null, 
-      stats: { executionTime: 0, backtracks: 0, fillRate: 0 },
+      stats: { executionTime: 0, backtracks: 0, fillRate: 0, fillerRate: 0 },
       errors: ['Maximum attempts reached or timeout']
     };
   }

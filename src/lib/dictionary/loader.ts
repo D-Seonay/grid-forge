@@ -17,21 +17,15 @@ class DictionaryLoader {
     if (this.dictionary) return this.dictionary;
 
     try {
-      // Check if we are in Node.js environment
-      const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
-
-      if (isNode) {
-        // Server side (Node.js)
-        const fs = await import('fs');
-        const path = await import('path');
-        const filePath = path.join(process.cwd(), 'public', 'dictionary.json');
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        this.dictionary = JSON.parse(fileContent);
-      } else {
-        // Client side or Web Worker
-        const response = await fetch('/dictionary.json');
-        this.dictionary = await response.json();
-      }
+      // In Next.js, files in /public are served at the root
+      // We use a relative URL that works in both client and server (via local fetch)
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${baseUrl}/dictionary.json`);
+      this.dictionary = await response.json();
+      
       return this.dictionary!;
     } catch (error) {
       console.error('Failed to load dictionary:', error);

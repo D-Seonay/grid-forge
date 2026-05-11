@@ -176,7 +176,7 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
             <PriorityPanel 
               words={priorityWords} 
-              onAddWord={(w) => setPriorityWords([...priorityWords, w])} 
+              onAddWords={(newWords) => setPriorityWords(prev => [...prev, ...newWords])} 
               onRemoveWord={(i) => setPriorityWords(priorityWords.filter((_, idx) => idx !== i))} 
             />
           </div>
